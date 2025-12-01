@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>じゃんけん</title>
+
+    <!-- CSS読み込み -->
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- jQuery読み込み -->
+    <script src="js/jquery-3.7.1.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1>じゃんけん</h1>
+    </header>
+
+    <main>
+        <div class="card">
+            <ul class="choices">
+                <li id="gu" class="choice-btn">✊ グー</li>
+                <li id="choki" class="choice-btn">✌️ チョキ</li>
+                <li id="pa" class="choice-btn">✋ パー</li>
+            </ul>
+            <div class="result-area">
+                <div>
+                    コンピュータの手：「<span id="pc-hand">まだ選んでいません</span>」
+                </div>
+                <div id="result" class="result">手を選んでください</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // じゃんけんアプリ概要 -----------------------------------------------
+        // 
+        // 【基本機能】
+        // - プレイヤーがグー・チョキ・パーのボタンをクリックできる
+        // - コンピュータがランダムに手を選ぶ
+        // - 勝敗を判定して結果を表示する
+        // - 結果に応じて色分け表示する
+        // 
+        // 【画面構成】
+        // - #gu ボタン: グーを選択
+        // - #choki ボタン: チョキを選択  
+        // - #pa ボタン: パーを選択
+        // - #pc-hand: コンピュータの手を表示
+        // - #result: 勝敗結果を表示
+        // 
+        // ---------------------------------------------------------------
+
+        // じゃんけんゲームの JavaScript を記述してください！
+
+// ---------------------------------------------------------------
+// ① 定数の定義と初期設定
+// ---------------------------------------------------------------
+
+// じゃんけんの手を数値と対応させるためのオブジェクト
+// 0: グー (✊), 1: チョキ (✌️), 2: パー (✋)
+// これを使うと、手と手による勝敗判定がしやすくなります。
+const HANDS = {
+    0: { name: "グー", emoji: "✊" },
+    1: { name: "チョキ", emoji: "✌️" },
+    2: { name: "パー", emoji: "✋" }
+};
+
+// 勝敗に応じて結果エリアに適用するクラスと表示文字列を定義
+const RESULTS = {
+    win: { text: "🎉 あなたの勝ち！", className: "win" },
+    lose: { text: "😭 コンピュータの勝ち！", className: "lose" },
+    draw: { text: "🤝 あいこ！", className: "draw" }
+};
+
+// ---------------------------------------------------------------
+// ② イベントリスナーの設定
+// ---------------------------------------------------------------
+
+// jQueryの $(document).ready() は、HTMLの読み込みが完了した後に
+// 中の処理を実行するためのものです。エラーを防ぐために常に使用します。
+$(document).ready(function() {
+    // コンソールに準備完了メッセージを出力
+    console.log("ドキュメントの読み込み完了。じゃんけんゲーム開始準備OK！");
+
+    // .choice-btn クラスを持つ要素（グー・チョキ・パーのボタン）が
+    // クリックされたときの処理を設定します。
+    $(".choice-btn").on("click", function() {
+        // クリックされたボタンの ID を取得します (gu, choki, pa のいずれか)。
+        const playerChoiceId = $(this).attr("id");
+        console.log(`[プレイヤー選択] ID: ${playerChoiceId}`);
+        
+        // プレイヤーの選択を数値 (0, 1, 2) に変換します。
+        const playerHand = convertIdToHand(playerChoiceId);
+        console.log(`[プレイヤーの手] 数値: ${playerHand}, 名前: ${HANDS[playerHand].name}`);
+        
+        // コンピュータの手をランダムに決定します。
+        const pcHand = generatePcHand();
+        console.log(`[PCの手] 数値: ${pcHand}, 名前: ${HANDS[pcHand].name}`);
+        
+        // コンピュータの手を表示エリアにセットします。
+        displayPcHand(pcHand);
+        
+        // 勝敗を判定し、結果を表示エリアにセットします。
+        const result = judgeJanken(playerHand, pcHand);
+        displayResult(result);
+    });
+});
+
+// ---------------------------------------------------------------
+// ③ 各種機能（関数）の定義
+// ---------------------------------------------------------------
+
+/**
+ * プレイヤーがクリックしたボタンのIDをじゃんけんの手に変換する関数
+ * @param {string} id - クリックされたボタンのID ('gu', 'choki', 'pa')
+ * @returns {number} 0, 1, または 2
+ */
+function convertIdToHand(id) {
+    if (id === "gu") return 0; // グー
+    if (id === "choki") return 1; // チョキ
+    if (id === "pa") return 2; // パー
+    // 予期せぬIDの場合の安全策
+    console.error(`不明なID: ${id} が渡されました。`);
+    return -1; 
+}
+
+
+/**
+ * コンピュータの手をランダムに決定する関数
+ * @returns {number} 0 (グー), 1 (チョキ), または 2 (パー)
+ */
+function generatePcHand() {
+    // Math.random() は 0（含む）から 1（含まず）の間の小数を返します。
+    // それに 3 を掛けると 0.00... から 2.99... になります。
+    // Math.floor() で小数点以下を切り捨てると、0, 1, 2 のいずれかが得られます。
+    return Math.floor(Math.random() * 3);
+}
+
+/**
+ * コンピュータの手を画面に表示する関数
+ * @param {number} hand - コンピュータの手の数値 (0, 1, または 2)
+ */
+function displayPcHand(hand) {
+    // HANDSオブジェクトから対応する名前と絵文字を取得
+    const pcHandText = `${HANDS[hand].emoji} ${HANDS[hand].name}`;
+    
+    // jQueryで #pc-hand 要素のテキストを更新します。
+    $("#pc-hand").text(pcHandText);
+    
+    console.log(`[表示更新] コンピュータの手: ${pcHandText}`);
+}
+
+/**
+ * 勝敗を判定する関数
+ * @param {number} player - プレイヤーの手 (0, 1, または 2)
+ * @param {number} pc - コンピュータの手 (0, 1, または 2)
+ * @returns {string} 'win', 'lose', または 'draw'
+ */
+function judgeJanken(player, pc) {
+    if (player === pc) {
+        // プレイヤーの手とコンピュータの手が同じなら「あいこ」
+        return 'draw';
+    } else if ((player === 0 && pc === 1) || // グー(0)はチョキ(1)に勝つ
+               (player === 1 && pc === 2) || // チョキ(1)はパー(2)に勝つ
+               (player === 2 && pc === 0)) { // パー(2)はグー(0)に勝つ
+        // 上記のいずれかに該当すれば「勝ち」
+        return 'win';
+    } else {
+        // それ以外はすべて「負け」
+        return 'lose';
+    }
+}
+
+/**
+ * 判定結果を画面に表示し、色分け表示のためのクラスを適用する関数
+ * @param {string} resultKey - 判定結果 ('win', 'lose', または 'draw')
+ */
+function displayResult(resultKey) {
+    // 結果オブジェクトから表示テキストとクラス名を取得
+    const resultData = RESULTS[resultKey];
+
+    // ① #result 要素のテキストを更新
+    $("#result").text(resultData.text);
+
+    // ② 以前適用されていた色分けクラスを全て削除 (もしあれば)
+    // .removeClass() を使うと、以前の結果の色が残るのを防げます。
+    $("#result").removeClass("win lose draw");
+
+    // ③ 新しい結果に応じた色分けクラスを適用
+    // CSSでこのクラスに対応したスタイルを設定することで色が変わります。
+    $("#result").addClass(resultData.className);
+
+    console.log(`[表示更新] 結果: ${resultData.text}, クラス: ${resultData.className}`);
+}
+
+</script>
+</body>
+
+</html>
+
